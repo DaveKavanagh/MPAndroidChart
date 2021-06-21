@@ -15,6 +15,7 @@ import com.github.mikephil.charting.highlight.Highlight;
 import com.github.mikephil.charting.highlight.Range;
 import com.github.mikephil.charting.interfaces.dataprovider.BarDataProvider;
 import com.github.mikephil.charting.interfaces.datasets.IBarDataSet;
+import com.github.mikephil.charting.utils.Fill;
 import com.github.mikephil.charting.utils.MPPointF;
 import com.github.mikephil.charting.utils.Transformer;
 import com.github.mikephil.charting.utils.Utils;
@@ -143,13 +144,15 @@ public class BarChartRenderer extends BarLineScatterCandleBubbleRenderer {
 
         trans.pointValuesToPixel(buffer.buffer);
 
+        final boolean isCustomFill = dataSet.getFills() != null && !dataSet.getFills().isEmpty();
         final boolean isSingleColor = dataSet.getColors().size() == 1;
+        final boolean isInverted = mChart.isInverted(dataSet.getAxisDependency());
 
         if (isSingleColor) {
             mRenderPaint.setColor(dataSet.getColor());
         }
 
-        for (int j = 0; j < buffer.size(); j += 4) {
+        for (int j = 0, pos = 0; j < buffer.size(); j += 4, pos++) {
 
             if (!mViewPortHandler.isInBoundsLeft(buffer.buffer[j + 2]))
                 continue;
@@ -160,11 +163,23 @@ public class BarChartRenderer extends BarLineScatterCandleBubbleRenderer {
             if (!isSingleColor) {
                 // Set the color for the currently drawn value. If the index
                 // is out of bounds, reuse colors.
-                mRenderPaint.setColor(dataSet.getColor(j / 4));
+                mRenderPaint.setColor(dataSet.getColor(pos));
             }
 
-            c.drawRect(buffer.buffer[j], buffer.buffer[j + 1], buffer.buffer[j + 2],
-                    buffer.buffer[j + 3], mRenderPaint);
+            if (isCustomFill) {
+                dataSet.getFill(pos)
+                        .fillRect(
+                                c, mRenderPaint,
+                                buffer.buffer[j],
+                                buffer.buffer[j + 1],
+                                buffer.buffer[j + 2],
+                                buffer.buffer[j + 3],
+                                isInverted ? Fill.Direction.DOWN : Fill.Direction.UP);
+            }
+            else {
+                c.drawRect(buffer.buffer[j], buffer.buffer[j + 1], buffer.buffer[j + 2],
+                        buffer.buffer[j + 3], mRenderPaint);
+            }
 
             if (drawBorder) {
                 c.drawRect(buffer.buffer[j], buffer.buffer[j + 1], buffer.buffer[j + 2],
